@@ -24,6 +24,7 @@ import {
   type SheetHeader,
 } from "@/components/adaptive-modal-sheet";
 import { systemBackPress } from "@/components/ui/isolated-bottom-sheet-modal";
+import { RetainedPanelActivity } from "@/components/retained-panel";
 import { Button } from "@/components/ui/button";
 import type { PanelIconProps } from "@/panels/panel-registry";
 import { getPanelRegistration } from "@/panels/panel-registry";
@@ -250,12 +251,15 @@ function WorkspaceSheetPresentation({
           onChange={handleChange}
           accessible={false}
         >
-          <WorkspaceSheetBody
-            tab={tab}
-            isPaneFocused={isTop && isWorkspaceFocused}
-            isWorkspaceFocused={isWorkspaceFocused}
-            buildContent={buildContent}
-          />
+          {/* A covered sheet keeps its state but stops its live work until it is on top again. */}
+          <RetainedPanelActivity active={isTop}>
+            <WorkspaceSheetBody
+              tab={tab}
+              isPaneFocused={isTop && isWorkspaceFocused}
+              isWorkspaceFocused={isWorkspaceFocused}
+              buildContent={buildContent}
+            />
+          </RetainedPanelActivity>
         </BottomSheet>
       </WorkspaceSheetHandleContext.Provider>
     </View>
