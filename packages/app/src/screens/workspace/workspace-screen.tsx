@@ -75,6 +75,7 @@ import {
   selectExplorerSidebarPaneId,
   selectPaneFocusSuspended,
   type WorkspaceLayout,
+  type WorkspaceSheet,
   type WorkspaceTabPlacement,
   useWorkspaceLayoutStore,
   useWorkspaceLayoutStoreHydrated,
@@ -204,6 +205,7 @@ import { RenderProfile } from "@/utils/render-profiler";
 import { useWorkspaceCheckoutStatus } from "@/screens/workspace/use-workspace-checkout-status";
 import { useHasPullRequest, usePullRequestAutoAdd } from "@/panels/pull-request";
 
+const NO_SHEETS: readonly WorkspaceSheet[] = [];
 const WORKSPACE_FLOATING_PANEL_PORTAL_HOST_PREFIX = "workspace-floating-panels";
 const EMPTY_UI_TABS: WorkspaceTab[] = [];
 const EMPTY_WORKSPACE_SCRIPTS: WorkspaceDescriptor["scripts"] = [];
@@ -1309,8 +1311,12 @@ function WorkspaceScreenContent({
   const focusWorkspaceTab = useWorkspaceLayoutStore((state) => state.focusTab);
   const selectWorkspaceTabInPane = useWorkspaceLayoutStore((state) => state.selectTabInPane);
   const closeWorkspaceTab = useWorkspaceLayoutStore((state) => state.closeTab);
+  const sheets = useWorkspaceLayoutStore((state) =>
+    persistenceKey ? (state.sheetsByWorkspace[persistenceKey] ?? NO_SHEETS) : NO_SHEETS,
+  );
+  // Only the top sheet is on screen.
   const sheetTab = useWorkspaceLayoutStore((state) =>
-    persistenceKey ? (state.sheetByWorkspace[persistenceKey]?.tab ?? null) : null,
+    persistenceKey ? (state.sheetsByWorkspace[persistenceKey]?.at(-1)?.tab ?? null) : null,
   );
   const unpinWorkspaceAgent = useWorkspaceLayoutStore((state) => state.unpinAgent);
   const hideWorkspaceAgent = useWorkspaceLayoutStore((state) => state.hideAgent);
@@ -2069,7 +2075,7 @@ function WorkspaceScreenContent({
 
   const handleCloseTabById = useCallback(
     async (tabId: string) => {
-      if (persistenceKey && sheetTab?.tabId === tabId) {
+      if (persistenceKey && sheets.some((sheet) => sheet.tab.tabId === tabId)) {
         if (await confirmDiscardModifiedTab(tabId)) {
           closeWorkspaceTab(persistenceKey, tabId);
         }
@@ -2100,7 +2106,7 @@ function WorkspaceScreenContent({
       handleClosePassiveTab,
       handleCloseTerminalTab,
       persistenceKey,
-      sheetTab,
+      sheets,
     ],
   );
 
@@ -3524,8 +3530,8 @@ function WorkspaceScreenContent({
   const rendersDesktopSplitContent = !isMobile && desktopSplitContent !== null;
 
   const workspacePanelTabIds = useMemo(
-    () => [...uiTabs.map((tab) => tab.tabId), ...(sheetTab ? [sheetTab.tabId] : [])],
-    [uiTabs, sheetTab],
+    () => [...uiTabs.map((tab) => tab.tabId), ...sheets.map((sheet) => sheet.tab.tabId)],
+    [uiTabs, sheets],
   );
   const workspacePanelKey = `${normalizedServerId}:${normalizedWorkspaceId}`;
 
